@@ -224,7 +224,7 @@ def main():
 
     set_seed(args.seed)
 
-    # Count the number of labels.
+    # Count the number of labels. #tsj 从训练数据中读取所有的不同标签
     labels_set = set()
     columns = {}
     with open(args.train_path, mode="r", encoding="utf-8") as f:
@@ -249,7 +249,7 @@ def main():
     # Build bert model.
     # A pseudo target is added.
     args.target = "bert"
-    model = build_model(args)
+    model = build_model(args) #tsj 构造bert模型
 
     # Load or initialize parameters.
     if args.pretrained_model_path is not None:
@@ -262,7 +262,7 @@ def main():
                 p.data.normal_(0, 0.02)
     
     # Build classification model.
-    model = BertClassifier(args, model)
+    model = BertClassifier(args, model) #tsj bert 分类器
 
     # For simplicity, we use DataParallel wrapper to use multiple GPUs.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -270,19 +270,19 @@ def main():
         print("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
         model = nn.DataParallel(model)
 
-    model = model.to(device)
+    model = model.to(device) #tsj 模型载入device
     
-    # Datset loader.
+    # Datset loader. #tsj 构造每一个batch的数据集
     def batch_loader(batch_size, input_ids, label_ids, mask_ids, pos_ids, vms):
         instances_num = input_ids.size()[0]
-        for i in range(instances_num // batch_size):
+        for i in range(instances_num // batch_size): #tsj // 整除、地板除，构造每一个batch的数据集
             input_ids_batch = input_ids[i*batch_size: (i+1)*batch_size, :]
             label_ids_batch = label_ids[i*batch_size: (i+1)*batch_size]
             mask_ids_batch = mask_ids[i*batch_size: (i+1)*batch_size, :]
             pos_ids_batch = pos_ids[i*batch_size: (i+1)*batch_size, :]
             vms_batch = vms[i*batch_size: (i+1)*batch_size]
             yield input_ids_batch, label_ids_batch, mask_ids_batch, pos_ids_batch, vms_batch
-        if instances_num > instances_num // batch_size * batch_size:
+        if instances_num > instances_num // batch_size * batch_size: #tsj 剩下不足一个batch的单独做一个batch
             input_ids_batch = input_ids[instances_num//batch_size*batch_size:, :]
             label_ids_batch = label_ids[instances_num//batch_size*batch_size:]
             mask_ids_batch = mask_ids[instances_num//batch_size*batch_size:, :]
@@ -298,6 +298,7 @@ def main():
         spo_files = [args.kg_name]
     kg = KnowledgeGraph(spo_files=spo_files, predicate=True)
 
+    #tsj 读取数据集
     def read_dataset(path, workers_num=1):
 
         print("Loading sentences from {}".format(path))
@@ -512,6 +513,7 @@ def main():
     print("vms")
     vms = [example[4] for example in trainset]
 
+    # 训练的步数 steps = 样本数*每个样本学习的轮数epoch/没个batch的样本数batch_size
     train_steps = int(instances_num * args.epochs_num / batch_size) + 1
 
     print("Batch size: ", batch_size)
@@ -528,7 +530,8 @@ def main():
     total_loss = 0.
     result = 0.0
     best_result = 0.0
-    
+
+    #tsj 训练模型、调整参数、保存checkpoint
     for epoch in range(1, args.epochs_num+1):
         model.train()
         for i, (input_ids_batch, label_ids_batch, mask_ids_batch, pos_ids_batch, vms_batch) in enumerate(batch_loader(batch_size, input_ids, label_ids, mask_ids, pos_ids, vms)):
