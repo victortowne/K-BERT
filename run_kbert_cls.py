@@ -567,7 +567,7 @@ def main():
         print("Start evaluation on test dataset.")
         evaluate(args, True)
 
-    # Evaluation phase.
+    # Evaluation phase. #tsj 评估阶段
     print("Final evaluation on the test dataset.")
 
     if torch.cuda.device_count() > 1:
